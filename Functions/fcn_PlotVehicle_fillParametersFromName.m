@@ -1,14 +1,14 @@
-function tireParameters = fcn_PlotTire_parseTireSidewallCode(tireCodeCharacters, varargin)
-%fcn_PlotTire_parseTireSidewallCode - Parses tire sidewall characters into
+function vehicleParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameString, varargin)
+%fcn_PlotVehicle_fillParametersFromName - Parses tire sidewall characters into
 %dimensions (SI)
 %
 % FORMAT:
 %
-%      tireParameters = fcn_PlotTire_parseTireSidewallCode(tireCodeCharacters, (figNum));
+%      vehicleParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameString, (figNum));
 %
 % INPUTS:
 %
-%      tireCodeCharacters - a character array or string containing a tire's
+%      vehicleNameString - a character array or string containing a tire's
 %      sidewall specification, for example: '205/55R16', 'P225/50R17 94H',
 %      'LT265/70R17 121/118R'
 %
@@ -20,8 +20,8 @@ function tireParameters = fcn_PlotTire_parseTireSidewallCode(tireCodeCharacters,
 %
 % OUTPUTS:
 %
-%      tireParameters - a structure containing key measurements of the tire
-%      as specified by the tireCodeCharacters. Key fields include:
+%      vehicleParameters - a structure containing key measurements of the tire
+%      as specified by the vehicleNameString. Key fields include:
 %
 % DEPENDENCIES:
 %
@@ -29,22 +29,22 @@ function tireParameters = fcn_PlotTire_parseTireSidewallCode(tireCodeCharacters,
 %
 % EXAMPLES:
 %
-%     See the script: script_test_fcn_PlotTire_parseTireSidewallCode
+%     See the script: script_test_fcn_PlotVehicle_fillParametersFromName
 %     for a full test suite.
 %
-% This function was written on 2026_02_08 by S. Brennan
+% This function was written on 2026_02_13 by S. Brennan
 % Questions or comments? sbrennan@psu.edu
 
 % REVISION HISTORY:
 %
-% 2026_02_08 by Sean Brennan, sbrennan@psu.edu
-% - In fcn_PlotTire_parseTireSidewallCode
-%   % * Wrote the code originally, using fcn_Laps_break+DataIntoLapIndices
+% 2026_02_13 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_PlotVehicle_fillParametersFromName
+%   % * Wrote the code originally, using fcn_Plot+Tire_parseTireSidewallCode
 %   %   % as starter
 
 % TO-DO:
 %
-% 2026_02_08 by Sean Brennan, sbrennan@psu.edu
+% 2026_02_13 by Sean Brennan, sbrennan@psu.edu
 % - (fill in items here)
 
 
@@ -98,8 +98,8 @@ if 0==flag_max_speed
         % Are there the right number of inputs?
         narginchk(MAX_NARGIN-1,MAX_NARGIN);
 
-        % Validate tireCodeCharacters that it is characters or string
-		fcn_DebugTools_checkInputsToFunctions(tireCodeCharacters, '_of_char_strings');
+        % Validate vehicleNameString that it is characters or string
+		fcn_DebugTools_checkInputsToFunctions(vehicleNameString, '_of_char_strings');
     end
 end
 
@@ -159,25 +159,27 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Trim leading and trailing spaces off the code string
-tireCodeCharacters = strtrim(string(tireCodeCharacters));
+vehicleNameString = strtrim(string(vehicleNameString));
 
 % Save result
-tireParameters.rawInput = tireCodeCharacters;
+vehicleParameters.rawInput = vehicleNameString;
 
 % Initialize outputs
-tireParameters.sectionWidth_m = NaN;
-tireParameters.aspectRatio = NaN;
-tireParameters.rimDiameter_in = NaN;
-tireParameters.rimDiameter_m = NaN;
-tireParameters.sidewallHeight_m = NaN;
-tireParameters.overallDiameter_m = NaN;
-tireParameters.radius_m = NaN;
-tireParameters.circumference_m = NaN;
-tireParameters.construction = "";
-tireParameters.loadIndex = "";
-tireParameters.speedRating = "";
+vehicleParameters.wheelbase_m = NaN;
+vehicleParameters.track_m = NaN;
+vehicleParameters.frontBumperXoffset_m = NaN;
+vehicleParameters.rearBumperXoffset_m = NaN;
+vehicleParameters.frontSteeringRoadwheelAngleLimit_rad = NaN;
+vehicleParameters.width = NaN;
+vehicleParameters.length = NaN;
+vehicleParameters.turnRadius_m = NaN;
+vehicleParameters.mass_kg = NaN;
+vehicleParameters.Iz_kgm_per_s2 = NaN;
+vehicleParameters.Caf_N_per_rad = NaN;
+vehicleParameters.Car_N_per_rad = NaN;
 
-charactersAsCharType = char(tireCodeCharacters);
+
+charactersAsCharType = char(vehicleNameString);
 
 % Remove multiple spaces
 charactersAsCharType = regexprep(charactersAsCharType,'\s+',' ');
@@ -198,23 +200,23 @@ if isempty(m)
 end
 
 % Parse main numeric fields
-tireParameters.prefix = string(m.prefix);
+vehicleParameters.prefix = string(m.prefix);
 width_mm = str2double(m.width);
 aspect = str2double(m.aspect);
 rim_in = str2double(m.rim);
-tireParameters.sectionWidth_m = width_mm / 1000;        % mm -> m
-tireParameters.aspectRatio = aspect;
-tireParameters.rimDiameter_in = rim_in;
-tireParameters.rimDiameter_m = rim_in * 0.0254;         % 1 inch = 0.0254 m
-tireParameters.construction = string(m.construction);
+vehicleParameters.wheelbase_m = width_mm / 1000;        % mm -> m
+vehicleParameters.track_m = aspect;
+vehicleParameters.rimDiameter_in = rim_in;
+vehicleParameters.rimDiameter_m = rim_in * 0.0254;         % 1 inch = 0.0254 m
+vehicleParameters.construction = string(m.construction);
 
 % Sidewall height = section width * (aspect/100)
-tireParameters.sidewallHeight_m = tireParameters.sectionWidth_m * (tireParameters.aspectRatio/100);
+vehicleParameters.frontSteeringRoadwheelAngleLimit_rad = vehicleParameters.wheelbase_m * (vehicleParameters.track_m/100);
 
 % Overall diameter = rim diameter + 2 * sidewall height
-tireParameters.overallDiameter_m = tireParameters.rimDiameter_m + 2 * tireParameters.sidewallHeight_m;
-tireParameters.radius_m = tireParameters.overallDiameter_m / 2;
-tireParameters.circumference_m = pi * tireParameters.overallDiameter_m;
+vehicleParameters.leftBoundingBoxYoffset_m = vehicleParameters.rimDiameter_m + 2 * vehicleParameters.frontSteeringRoadwheelAngleLimit_rad;
+vehicleParameters.rightBoundingBoxYoffset_m = vehicleParameters.leftBoundingBoxYoffset_m / 2;
+vehicleParameters.circumference_m = pi * vehicleParameters.leftBoundingBoxYoffset_m;
 
 % Parse optional rest for load index and speed rating (e.g. '94H' or '121/118R')
 rest = "";
@@ -226,8 +228,8 @@ if ~isempty(rest)
     % Handle dual load indexes like 121/118R
     tokens = regexp(rest, '^(?<load>\d{2,3}(?:/\d{2,3})?)(?<speed>[A-Za-z]?)', 'names');
     if ~isempty(tokens)
-        tireParameters.loadIndex = string(tokens.load);
-        tireParameters.speedRating = string(tokens.speed);
+        vehicleParameters.loadIndex = string(tokens.load);
+        vehicleParameters.speedRating = string(tokens.speed);
     else
         % maybe space-separated like '94 H'
         parts = strsplit(rest);
@@ -235,12 +237,12 @@ if ~isempty(rest)
             % pick first numeric token as load
             ln = regexp(parts{1}, '\d{2,3}(?:/\d{2,3})?', 'match');
             if ~isempty(ln)
-                tireParameters.loadIndex = string(ln{1});
+                vehicleParameters.loadIndex = string(ln{1});
             end
             % pick first letter token as speed
             sp = regexp(rest, '[A-Za-z]$', 'match');
             if ~isempty(sp)
-                tireParameters.speedRating = string(sp{1});
+                vehicleParameters.speedRating = string(sp{1});
             end
         end
     end

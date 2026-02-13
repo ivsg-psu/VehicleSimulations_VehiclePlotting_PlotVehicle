@@ -2,12 +2,12 @@
 %% Introduction to and Purpose of the Code
 % This is the explanation of the code that can be found by running
 %
-%       script_demo_PlotTire.m
+%       script_demo_PlotVehicle.m
 % 
-% This is a script to demonstrate the functions within the PlotTire code
+% This is a script to demonstrate the functions within the PlotVehicle code
 % library. This code repo is typically located at:
 %
-% https://github.com/ivsg-psu/VehicleSimulations_VehiclePlotting_PlotTire
+% https://github.com/ivsg-psu/VehicleSimulations_VehiclePlotting_PlotVehicle
 %
 % If you have questions or comments, please contact Sean Brennan at
 % sbrennan@psu.edu
@@ -23,21 +23,11 @@
 
 % REVISION HISTORY:
 % 
-% 2026_02_08 by Sean Brennan, sbrennan@psu.edu
+% 2026_02_12 by Sean Brennan, sbrennan@psu.edu
 % - First creation of the repo
-% 
-% 2026_02_10 by Sean Brennan, sbrennan@psu.edu
-% - In script_demo_VD
-%   % * Added check if repo is ready for release
-% - Added roundedRectangle function
-% - Added test cases for all functions
-% - Deprecated unused functions
-% - Fixed fcn_PlotTire_roundedRectangle to have correct standard
-%   % format
-% (new release)
 
 % TO-DO:
-% - 2026_02_08 by Sean Brennan, sbrennan@psu.edu
+% - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
 %   % - Add motion blur model, maybe?
 
 %% Make sure we are running out of root directory
@@ -50,7 +40,7 @@ cd(filepath);
 
 %% Clear paths and folders, if needed
 if 1==1
-    clear flag_PlotTire_Folders_Initialized
+    clear flag_PlotVehicle_Folders_Initialized
 end
 
 if 1==0
@@ -72,6 +62,9 @@ ith_repo = 0;
 % ith_repo = ith_repo+1;
 % dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_PathClassLibrary';
 % dependencySubfolders{ith_repo} = {'Functions','Data'};
+ith_repo = ith_repo+1;
+dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_GetUserInputPath';
+dependencySubfolders{ith_repo} = {''};
 
 ith_repo = ith_repo+1;
 dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_GetUserInputPath';
@@ -92,7 +85,7 @@ dependencySubfolders{ith_repo} = {''};
 
 
 %% Do we need to set up the work space?
-if ~exist('flag_PlotTire_Folders_Initialized','var')
+if ~exist('flag_PlotVehicle_Folders_Initialized','var')
     
     % Clear prior global variable flags
     clear global FLAG_*
@@ -114,15 +107,15 @@ if ~exist('flag_PlotTire_Folders_Initialized','var')
         'Functions','Data'};
     fcn_DebugTools_addSubdirectoriesToPath(pwd,this_project_folders)
 
-    flag_PlotTire_Folders_Initialized = 1;
+    flag_PlotVehicle_Folders_Initialized = 1;
 end
 
 %%% END OF STANDARD INSTALLER CODE %%%%%%%%%
 
-%% Set environment flags for input checking in PlotTire library
+%% Set environment flags for input checking in PlotVehicle library
 % These are values to set if we want to check inputs or do debugging
-setenv('MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS','1');
-setenv('MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG','0');
+setenv('MATLABFLAG_PLOTVEHICLE_FLAG_CHECK_INPUTS','1');
+setenv('MATLABFLAG_PLOTVEHICLE_FLAG_DO_DEBUG','0');
 
 %% Set environment flags that define the ENU origin
 % This sets the "center" of the ENU coordinate system for all plotting
@@ -144,7 +137,7 @@ setenv('MATLABFLAG_PLOTROAD_ALIGNMATLABLLAPLOTTINGIMAGES_LON','0.0000054');
 %% Check if repo is ready for release
 if 1==0
 	figNum = 999999;
-	repoShortName = '_PlotTire_';
+	repoShortName = '_PlotVehicle_';
 	fcn_DebugTools_testRepoForRelease(repoShortName, (figNum));
 end
 
@@ -162,7 +155,7 @@ end
 % See: http://patorjk.com/software/taag/#p=display&f=Big&t=Start%20of%20Demo%20Code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-disp('Welcome to the demo code for the PlotTire library!')
+disp('Welcome to the demo code for the PlotVehicle library!')
 
 %% fcn_PlotTire_parseTireSidewallCode and fcn_PlotTire_plotTireDimensions
 figNum = 10001;
