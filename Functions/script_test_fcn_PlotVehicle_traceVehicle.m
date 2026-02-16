@@ -46,7 +46,7 @@ vehicleImageFilePathString = fullfile(pwd,'Data','2017_Ford_Transit_ConnectXLTWa
 allViewsFigurePathString = fullfile(pwd,'Data','vehicleViews.fig');
 
 viewNames = {'Top View', 'Passenger Side View','Drivers Side View','Front View', 'Rear View'};
-viewNumbers = [1; 4; 6; 5; 9];
+viewNumbers = [1; 4; 6; 5; 8];
 
 if 1==1 %~exist(allViewsFigure,'file')
 	imgAllViews = imread(vehicleImageFilePathString);   % load image into workspace
