@@ -37,7 +37,7 @@ function vehicleParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameS
 
 % REVISION HISTORY:
 %
-% 2026_02_13 by Sean Brennan, sbrennan@psu.edu
+% 2026_02_15 by Sean Brennan, sbrennan@psu.edu
 % - In fcn_PlotVehicle_fillParametersFromName
 %   % * Wrote the code originally, using fcn_Plot+Tire_parseTireSidewallCode
 %   %   % as starter
@@ -45,7 +45,7 @@ function vehicleParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameS
 % TO-DO:
 %
 % 2026_02_13 by Sean Brennan, sbrennan@psu.edu
-% - (fill in items here)
+% - Need to show which vehicles already exist
 
 
 %% Debugging and Input checks
@@ -56,29 +56,29 @@ function vehicleParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameS
 MAX_NARGIN = 2; % The largest Number of argument inputs to the function
 flag_max_speed = 0; % The default. This runs code with all error checking
 if (nargin==MAX_NARGIN && isequal(varargin{end},-1))
-    flag_do_debug = 0; % Flag to plot the results for debugging
-    flag_check_inputs = 0; % Flag to perform input checking
-    flag_max_speed = 1;
+	flag_do_debug = 0; % Flag to plot the results for debugging
+	flag_check_inputs = 0; % Flag to perform input checking
+	flag_max_speed = 1;
 else
-    % Check to see if we are externally setting debug mode to be "on"
-    flag_do_debug = 0; % Flag to plot the results for debugging
-    flag_check_inputs = 1; % Flag to perform input checking
-    MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS = getenv("MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS");
-    MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG = getenv("MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG");
-    if ~isempty(MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS) && ~isempty(MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG)
-        flag_do_debug = str2double(MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG);
-        flag_check_inputs  = str2double(MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS);
-    end
+	% Check to see if we are externally setting debug mode to be "on"
+	flag_do_debug = 0; % Flag to plot the results for debugging
+	flag_check_inputs = 1; % Flag to perform input checking
+	MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS = getenv("MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS");
+	MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG = getenv("MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG");
+	if ~isempty(MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS) && ~isempty(MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG)
+		flag_do_debug = str2double(MATLABFLAG_PLOTTIRE_FLAG_DO_DEBUG);
+		flag_check_inputs  = str2double(MATLABFLAG_PLOTTIRE_FLAG_CHECK_INPUTS);
+	end
 end
 
 % flag_do_debug = 1;
 
 if flag_do_debug % If debugging is on, print on entry/exit to the function
-    st = dbstack; %#ok<*UNRCH>
-    fprintf(1,'STARTING function: %s, in file: %s\n',st(1).name,st(1).file);
-    debug_figNum = 999978; %#ok<NASGU>
+	st = dbstack; %#ok<*UNRCH>
+	fprintf(1,'STARTING function: %s, in file: %s\n',st(1).name,st(1).file);
+	debug_figNum = 999978; %#ok<NASGU>
 else
-    debug_figNum = []; %#ok<NASGU>
+	debug_figNum = []; %#ok<NASGU>
 end
 
 %% check input arguments?
@@ -94,23 +94,23 @@ end
 % See: http://patorjk.com/software/taag/#p=display&f=Big&t=Inputs
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if 0==flag_max_speed
-    if flag_check_inputs
-        % Are there the right number of inputs?
-        narginchk(MAX_NARGIN-1,MAX_NARGIN);
+	if flag_check_inputs
+		% Are there the right number of inputs?
+		narginchk(MAX_NARGIN-1,MAX_NARGIN);
 
-        % Validate vehicleNameString that it is characters or string
+		% Validate vehicleNameString that it is characters or string
 		fcn_DebugTools_checkInputsToFunctions(vehicleNameString, '_of_char_strings');
-    end
+	end
 end
 
 
-% 
+%
 % % Set the start values
 % [flag_start_is_a_point_type, start_zone_definition] = fcn_Laps_checkZoneType(start_zone_definition, 'start_definition', -1);
-% 
-% 
+%
+%
 % % The following area checks for variable argument inputs (varargin)
-% 
+%
 % % Does the user want to specify the end_definition?
 % % Set defaults first:
 % end_zone_definition = start_zone_definition; % Default case
@@ -123,7 +123,7 @@ end
 %         [flag_end_is_a_point_type, end_zone_definition] = fcn_Laps_checkZoneType(temp, 'end_definition', -1);
 %     end
 % end
-% 
+%
 % % Does the user want to specify excursion_definition?
 % flag_use_excursion_definition = 0; % Default case
 % flag_excursion_is_a_point_type = 1; % Default case
@@ -138,12 +138,12 @@ end
 
 % Does user want to show the plots?
 flag_do_plots = 0; % Default is to NOT show plots
-if (0==flag_max_speed) && (MAX_NARGIN == nargin) 
-    temp = varargin{end};
-    if ~isempty(temp) % Did the user NOT give an empty figure number?
-        figNum = temp; %#ok<NASGU>
-        flag_do_plots = 1;
-    end
+if (0==flag_max_speed) && (MAX_NARGIN == nargin)
+	temp = varargin{end};
+	if ~isempty(temp) % Did the user NOT give an empty figure number?
+		figNum = temp; %#ok<NASGU>
+		flag_do_plots = 1;
+	end
 end
 
 
@@ -160,9 +160,11 @@ end
 
 % Trim leading and trailing spaces off the code string
 vehicleNameString = strtrim(string(vehicleNameString));
+charactersAsCharType = char(vehicleNameString);
+charactersAsCharType = regexprep(charactersAsCharType,'\s+',' ');
 
 % Save result
-vehicleParameters.rawInput = vehicleNameString;
+vehicleParameters.vehicleNameString = charactersAsCharType;
 
 % Initialize outputs
 vehicleParameters.wheelbase_m = NaN;
@@ -179,74 +181,20 @@ vehicleParameters.Caf_N_per_rad = NaN;
 vehicleParameters.Car_N_per_rad = NaN;
 
 
-charactersAsCharType = char(vehicleNameString);
-
-% Remove multiple spaces
-charactersAsCharType = regexprep(charactersAsCharType,'\s+',' ');
-
-% Try to capture patterns:
-% 1) Optional prefix (P, LT, etc.), then width/aspect/construction/rim: e.g. P225/50R17
-pat = '^(?<prefix>[A-Za-z]*)?(?<width>\d{3})/(?<aspect>\d{2,3})(?<construction>[A-Za-z])(?<rim>\d{1,2})(?:\s*(?<rest>.*))?$';
-m = regexp(charactersAsCharType, pat, 'names');
-
-if isempty(m)
-    % alternative: width mm may be 2 or 3 digits; accept 2-3
-    pat2 = '^(?<prefix>[A-Za-z]*)?(?<width>\d{2,3})/(?<aspect>\d{2,3})(?<construction>[A-Za-z])(?<rim>\d{1,2})(?:\s*(?<rest>.*))?$';
-    m = regexp(charactersAsCharType, pat2, 'names');
+% Check that a file exists?
+fileName = fullfile(pwd,'Data',cat(2,'vehicleParameters_',charactersAsCharType,'.mat'));
+if exist(fileName,'file')
+	load(fileName,'vehicleParameters');
+else
+	fprintf(1,'Previous file not found for vehicle: %s\n',charactersAsCharType);
+	if ~askYes('Do you wish to enter parameters manually?')
+		fprintf(1,'Using empty parameters.');
+		return;
+	end
 end
 
-if isempty(m)
-    error('Unrecognized tire sidewall format: %s', charactersAsCharType);
-end
-
-% Parse main numeric fields
-vehicleParameters.prefix = string(m.prefix);
-width_mm = str2double(m.width);
-aspect = str2double(m.aspect);
-rim_in = str2double(m.rim);
-vehicleParameters.wheelbase_m = width_mm / 1000;        % mm -> m
-vehicleParameters.track_m = aspect;
-vehicleParameters.rimDiameter_in = rim_in;
-vehicleParameters.rimDiameter_m = rim_in * 0.0254;         % 1 inch = 0.0254 m
-vehicleParameters.construction = string(m.construction);
-
-% Sidewall height = section width * (aspect/100)
-vehicleParameters.frontSteeringRoadwheelAngleLimit_rad = vehicleParameters.wheelbase_m * (vehicleParameters.track_m/100);
-
-% Overall diameter = rim diameter + 2 * sidewall height
-vehicleParameters.leftBoundingBoxYoffset_m = vehicleParameters.rimDiameter_m + 2 * vehicleParameters.frontSteeringRoadwheelAngleLimit_rad;
-vehicleParameters.rightBoundingBoxYoffset_m = vehicleParameters.leftBoundingBoxYoffset_m / 2;
-vehicleParameters.circumference_m = pi * vehicleParameters.leftBoundingBoxYoffset_m;
-
-% Parse optional rest for load index and speed rating (e.g. '94H' or '121/118R')
-rest = "";
-if isfield(m,'rest') && ~isempty(m.rest)
-    rest = strtrim(m.rest);
-end
-
-if ~isempty(rest)
-    % Handle dual load indexes like 121/118R
-    tokens = regexp(rest, '^(?<load>\d{2,3}(?:/\d{2,3})?)(?<speed>[A-Za-z]?)', 'names');
-    if ~isempty(tokens)
-        vehicleParameters.loadIndex = string(tokens.load);
-        vehicleParameters.speedRating = string(tokens.speed);
-    else
-        % maybe space-separated like '94 H'
-        parts = strsplit(rest);
-        if ~isempty(parts)
-            % pick first numeric token as load
-            ln = regexp(parts{1}, '\d{2,3}(?:/\d{2,3})?', 'match');
-            if ~isempty(ln)
-                vehicleParameters.loadIndex = string(ln{1});
-            end
-            % pick first letter token as speed
-            sp = regexp(rest, '[A-Za-z]$', 'match');
-            if ~isempty(sp)
-                vehicleParameters.speedRating = string(sp{1});
-            end
-        end
-    end
-end
+vehicleParameters = fcn_INTERNAL_fill_parameters(vehicleParameters);
+save(fileName,'vehicleParameters');
 
 
 %% Plot the results (for debugging)?
@@ -261,13 +209,13 @@ end
 %                           |___/
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if flag_do_plots
-    
-    
-    
+
+
+
 end
 
 if flag_do_debug
-    fprintf(1,'ENDING function: %s, in file: %s\n\n',st(1).name,st(1).file);
+	fprintf(1,'ENDING function: %s, in file: %s\n\n',st(1).name,st(1).file);
 end
 
 end % Ends main function
@@ -284,3 +232,125 @@ end % Ends main function
 % See: https://patorjk.com/software/taag/#p=display&f=Big&t=Functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%§
 
+function tf = askYes(prompt)
+if nargin==0, prompt = 'Continue? [y/n]: '; end
+while true
+	s = strtrim(input(prompt,'s'));
+	if isempty(s), continue; end
+	s = lower(s);
+	if startsWith(s,'y')
+		tf = true;
+		return;
+	elseif startsWith(s,'n')
+		tf = false;
+		return;
+	else
+		fprintf('Please answer y/yes or n/no.\n');
+	end
+end
+end
+
+
+function vehicleParameters = fcn_INTERNAL_fill_parameters(vehicleParameters)
+
+% vehicleParameters.wheelbase_m = NaN;
+% vehicleParameters.track_m = NaN;
+% vehicleParameters.frontBumperXoffset_m = NaN;
+% vehicleParameters.rearBumperXoffset_m = NaN;
+% vehicleParameters.frontSteeringRoadwheelAngleLimit_rad = NaN;
+% vehicleParameters.width = NaN;
+% vehicleParameters.length = NaN;
+% vehicleParameters.turnRadius_m = NaN;
+% vehicleParameters.mass_kg = NaN;
+% vehicleParameters.Iz_kgm_per_s2 = NaN;
+% vehicleParameters.Caf_N_per_rad = NaN;
+% vehicleParameters.Car_N_per_rad = NaN;
+
+fieldsToFill = fieldnames(vehicleParameters);
+% Fill in test data
+numQuestions = 0; % Initialize the number of questions
+selections = struct(); % Create an empty structure array for selections
+
+
+
+for ith_field = 1:length(fieldsToFill)
+	fieldName = fieldsToFill{ith_field};
+	currentValue = vehicleParameters.(fieldName);
+	if isempty(currentValue) || any(isnan(currentValue))
+		default = '-missing-';
+	else
+		if ischar(currentValue) || isstring(currentValue)
+			default = sprintf('%s',currentValue);
+		else
+			default = sprintf('%4f',currentValue);
+		end
+	end
+
+	if ith_field==1
+		numQuestions = numQuestions+1;
+		selections(numQuestions).MenuChar = sprintf('%.0f',ith_field);
+		selections(numQuestions).Name = fieldName;
+		selections(numQuestions).Text = sprintf(') What value do you wish to enter for %s?',fieldName);
+		selections(numQuestions).AnswerDefault = default;
+		selections(numQuestions).AnswerType = '_of_char_strings';
+		selections(numQuestions).AnswerConversionFunction = '';
+		selections(numQuestions).AnswerTypeOptions = [1 1];
+		selections(numQuestions).AnswerPrintFormat = '%s';
+		selections(numQuestions).FunctionMore = [];
+		selections(numQuestions).FunctionMoreInputs = {30};
+		selections(numQuestions).FunctionSubmission = '[answers, numBadOptionInputs, flag_exitMain] = fcn_INTERNAL_enterData(answers, selections, selectedOptionCharacters, numBadOptionInputs)';
+		selections(numQuestions).FunctionSubmissionOptions = {'.'};
+		selections(numQuestions).isAllowableMenuOption = true;
+	else
+
+		numQuestions = numQuestions+1;
+		selections(numQuestions).MenuChar = sprintf('%.0f',ith_field);
+		selections(numQuestions).Name = fieldName;
+		selections(numQuestions).Text = sprintf(') What value do you wish to enter for %s?',fieldName);
+		selections(numQuestions).AnswerDefault = default;
+		selections(numQuestions).AnswerType = '1column_of_numbers';
+		selections(numQuestions).AnswerConversionFunction = 'str2double';
+		selections(numQuestions).AnswerTypeOptions = [1 1];
+		selections(numQuestions).AnswerPrintFormat = '%.4f';
+		selections(numQuestions).FunctionMore = [];
+		selections(numQuestions).FunctionMoreInputs = {30};
+		selections(numQuestions).FunctionSubmission = '[answers, numBadOptionInputs, flag_exitMain] = fcn_INTERNAL_enterData(answers, selections, selectedOptionCharacters, numBadOptionInputs)';
+		selections(numQuestions).FunctionSubmissionOptions = {'.'};
+		selections(numQuestions).isAllowableMenuOption = true;
+	end
+end
+
+
+numQuestions = numQuestions+1;
+selections(numQuestions).MenuChar = 's';
+selections(numQuestions).Name = 'Submit';
+selections(numQuestions).Text = '(S)ubmit this assignment.';
+selections(numQuestions).AnswerDefault = '-unsubmitted-';
+selections(numQuestions).AnswerType = '1column_of_integers';
+selections(numQuestions).AnswerConversionFunction = 'str2double';
+selections(numQuestions).AnswerTypeOptions = [1 1];
+selections(numQuestions).AnswerPrintFormat = '%.0f';
+selections(numQuestions).FunctionMore = '';
+selections(numQuestions).FunctionMoreInputs = [];
+selections(numQuestions).FunctionSubmission = 'flag_exitMain = 1; fprintf(1,''Saving\\n'');';
+selections(numQuestions).FunctionSubmissionOptions = {'.'};
+selections(numQuestions).isAllowableMenuOption = true;
+
+% Enter menu loop
+answers = fcn_DebugTools_menuManageSelections(selections, (1));
+
+% disp(answers);
+
+
+for ith_field = 1:length(fieldsToFill)
+	fieldName = fieldsToFill{ith_field};
+	currentValue = answers{ith_field};
+	if ~isempty(currentValue)
+		if ith_field>1
+			currentValue = str2double(currentValue);
+		end
+		vehicleParameters.(fieldName) = currentValue;
+	end
+end
+
+end
