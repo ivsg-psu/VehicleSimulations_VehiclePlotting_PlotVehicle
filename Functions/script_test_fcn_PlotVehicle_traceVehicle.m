@@ -44,6 +44,7 @@ figAllViews = 9999;
 
 vehicleImageFilePathString = fullfile(pwd,'Data','2017_Ford_Transit_ConnectXLTWagon.png');
 allViewsFigurePathString = fullfile(pwd,'Data','vehicleViews.fig');
+alignedViewsFigurePathString = fullfile(pwd,'Data','vehicleViewsAligned.fig');
 
 viewNames = {
 	'Top View',...
@@ -57,18 +58,18 @@ viewNames = {
 	''};
 
 viewDimensionDirections = [
-	1 1 0; 
-	0 0 0;
-	0 0 0;
-	1 0 1; 
-	-1 0 1; 
-	0 1 1; 
-	0 0 0; 
-	0 -1 1;
-	0 0 0];
+	1 1 0; % subplot(3,3,1) - XY
+	0 0 0; % subplot(3,3,2) - empty
+	0 0 0; % subplot(3,3,3) - empty
+	1 0 1; % subplot(3,3,4) - XZ
+	0 1 1; % subplot(3,3,5) - YZ 
+	-1 0 1;% subplot(3,3,6) - (-X)Z
+	0 0 0; % subplot(3,3,7) - empty
+	0 -1 1;% subplot(3,3,8) - (-Y)Z
+	0 0 0];% subplot(3,3,9) - empty
 
-if 1==1
-	% if ~exist(allViewsFigure,'file')
+%if 1==1
+if ~exist(allViewsFigurePathString,'file')
 	imgAllViews = imread(vehicleImageFilePathString);   % load image into workspace
 	figure(figNum);                      % open new figure
 	imshow(imgAllViews);                   % display image
@@ -95,7 +96,7 @@ if 1==1
 	clf;
 	% grid_equal_pixel_axes(images, 3, 3)
 	rescalingFactor = 1.6;
-	demo_tiled_equal_size(images, viewDimensionDirections, rescalingFactor, viewNames)
+	minRatioDistanceperPixel = demo_tiled_equal_size(images, viewDimensionDirections, rescalingFactor, viewNames);
 
 	scaleImagesInFigure(figAllViews, []);
 	equalizeImagePixelScale(figAllViews, []);
@@ -105,72 +106,36 @@ end
 %% 
 workingFig = openfig(allViewsFigurePathString);
 
-%% FUNCTIONALIZE THIS
-% Make sure all the subplots are aligned
+%% Make sure all the subplots are aligned
 
 % Align first column
 viewNumbers = [1; 4; 7]; % Define view numbers for alignment
-dimensionsEachView = viewDimensionDirections(viewNumbers,:);
-nonEmptyViews = viewNumbers(~all(dimensionsEachView==0,2));
-goodDimensionsEachView = viewDimensionDirections(nonEmptyViews,:);
-dimensionToAlign = find(prod(goodDimensionsEachView,1)~=0);
+imageDimensionToAlign = 1;
+fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistanceperPixel, imageDimensionToAlign)
 
-axesInThisFigure = get(workingFig,'Children');
-existingTitles = cell(length(axesInThisFigure),1);
-for ith_subplot = 1:length(axesInThisFigure)
-	existingTitles{ith_subplot,1} = axesInThisFigure(ith_subplot).Title.String;
-end
+% Save results
+savefig(workingFig, alignedViewsFigurePathString)
 
+% Align second column
+viewNumbers = [2; 5; 8]; % Define view numbers for alignment
+imageDimensionToAlign = 1; 
+fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistanceperPixel, imageDimensionToAlign)
 
-allClickedPoints = nan(9,2);
+% Save results
+savefig(workingFig, alignedViewsFigurePathString)
 
-for ith_view = 1:length(viewNames)
+%%
 
+workingFig = openfig(alignedViewsFigurePathString);
 
-	if ~isempty(viewNames{ith_view}) && any(ith_view==viewNumbers)
+% Align second row
+viewNumbers = [4; 5; 6]; % Define view numbers for alignment
+imageDimensionToAlign = 2; 
+fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistanceperPixel, imageDimensionToAlign)
 
-		% titleToMatch = axesInThisFigure(ith_view).Title.String;
-		% thisIndex = find(strcmp(titleToMatch,viewNames),1);
+% Save results
+savefig(workingFig, alignedViewsFigurePathString)
 
-		viewToMatch = viewNames{ith_view};
-		axisIndex = find(strcmp(existingTitles,viewToMatch),1);
-		axisHandle = axesInThisFigure(axisIndex);
-
-		if dimensionToAlign==1
-			directionString = 'X';
-		elseif dimensionToAlign==2
-			directionString = 'Y';
-		elseif dimensionToAlign==3
-			directionString = 'Z';
-		else
-			error('unrecognized dimension: %.0f',dimensionToAlign);
-		end
-		
-		queryTitle = sprintf('Select a feature in this view to align this column in the %s direction',directionString);
-		thisTitle = get(axisHandle,'Title');
-		set(thisTitle,'String',queryTitle);
-
-		pts = fcn_INTERNAL_pickPixelsInSubplot(axisHandle);
-
-		% Set the title back to prior value
-		set(thisTitle,'String',viewToMatch);
-
-		allClickedPoints(ith_view,:) = pts;
-
-		% figure(figAllViews);
-		% subplot(3,3,ith_view);
-		% imshow(temp, 'XData',[1 size(temp,2)], 'YData',[1 size(temp,1)]);
-		% title(sprintf('%s',viewNames{ith_view}));
-	end
-end
-goodClickedPoints = allClickedPoints(~all(isnan(allClickedPoints),2),:);
-
-if find(goodDimensionsEachView(1,:),1)==dimensionToAlign
-	indexToAlign = 1; % Aligning X
-else
-	indexToAlign = 2; % Aligning Y
-end
-averagePoint = goodClickedPoints(indexToAlign);
 
 %% Call function to align these points
 
@@ -559,7 +524,7 @@ end
 end
 
 %%
-function pts = fcn_INTERNAL_pickPixelsInSubplot(ax)
+function [pts, figCoordinates] = fcn_INTERNAL_pickPixelsInSubplot(ax)
 % pts = pickPixelsInSubplot(ax)
 % Click inside axes ax to collect pixel coordinates. Press Enter to finish.
 % Returns pts as [col row] (1-based pixel indices). Empty on cancel.
@@ -575,21 +540,27 @@ end
 img = imObj.CData;
 nx = size(img,2); ny = size(img,1);
 
-pts = zeros(0,2);
+allPoints = zeros(0,2);
+figCoordinates = zeros(0,2);
 hold(ax,'on');
 
 hMark = plot(ax, nx/2, ny/2, 'ro', 'MarkerFaceColor','r');
 
 % ensure clicks hit the image
 set(imObj,'HitTest','on');
-% store state
-setappdata(fig,'pickPts',pts);
+
+% store states
+setappdata(fig,'pickPts',allPoints);
+setappdata(fig,'cPts',figCoordinates);
+
 set(fig, 'WindowButtonDownFcn', @(~,~) localClick(), ...
          'KeyPressFcn',       @(~,ev) localKey(ev));
 
 uiwait(fig);                       % block until Enter pressed or figure closed
 if ishandle(fig)
-    pts = getappdata(fig,'pickPts');
+    allPoints = getappdata(fig,'pickPts');
+	figCoordinates = getappdata(fig,'cPts');
+
     % cleanup callbacks
     set(fig,'WindowButtonDownFcn',[],'KeyPressFcn',[]);
     if ishandle(hMark), delete(hMark); end
@@ -602,10 +573,16 @@ end
             return;
         end
         % get data-space point
+		F = get(gcf, 'CurrentPoint');
         C = get(ax,'CurrentPoint');
+		figCoordinates = getappdata(fig,'cPts');
+		figCoordinates(end+1,:) = F;
+
         x = C(1,1); y = C(1,2);   % x = column (horizontal), y = row (vertical)
         % Map axes coordinates to pixel indices using image XData/YData
-        xd = get(imObj,'XData'); yd = get(imObj,'YData');
+        xd = get(imObj,'XData'); 
+		yd = get(imObj,'YData');
+
         if numel(xd)==2 && numel(yd)==2
             col = round( 1 + (x - xd(1)) * (nx-1) / (xd(2)-xd(1)) );
             row = round( 1 + (y - yd(1)) * (ny-1) / (yd(2)-yd(1)) );
@@ -616,10 +593,13 @@ end
         % clamp
         col = max(1,min(nx,col));
         row = max(1,min(ny,row));
-        pts = getappdata(fig,'pickPts');
-        pts(end+1,:) = [col row];
-        setappdata(fig,'pickPts',pts);
-        set(hMark,'XData',pts(:,1),'YData',pts(:,2));
+        allPoints = getappdata(fig,'pickPts');
+        allPoints(end+1,:) = [col row];
+
+		setappdata(fig,'pickPts',allPoints);
+		setappdata(fig,'cPts',zeros(0,2))
+        
+		set(hMark,'XData',allPoints(:,1),'YData',allPoints(:,2));
         drawnow;
     end
 
@@ -628,11 +608,12 @@ end
             uiresume(fig);
         elseif strcmp(ev.Key,'escape')
             setappdata(fig,'pickPts',zeros(0,2));
+			setappdata(fig,'cPts',zeros(0,2))
             uiresume(fig);
         end
     end
 
-pts = pts(end,:);
+pts = allPoints(end,:);
 end
 
 function scaleImagesInFigure(fig, scale)
@@ -734,8 +715,8 @@ end
 end
 
 
-%%
-function demo_tiled_equal_size(images, viewDimensionDirections, rescalingFactor, viewNames)
+%% minRatioDistanceperPixel
+function minRatioDistanceperPixel = demo_tiled_equal_size(images, viewDimensionDirections, rescalingFactor, viewNames)
 % images is a cell array of image arrays
 Nimages = numel(images);
 % cols = ceil(sqrt(Nimages));
@@ -815,39 +796,92 @@ for kth_image = 1:Nimages
 
 	end
 end
+end % Ends minRatioDistanceperPixel
+
+%% fcn_INTERNAL_alignSubplots
+function fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistanceperPixel, imageDimensionToAlign)
+
+axesInThisFigure = get(workingFig,'Children');
+existingTitles = cell(length(axesInThisFigure),1);
+for ith_subplot = 1:length(axesInThisFigure)
+	existingTitles{ith_subplot,1} = axesInThisFigure(ith_subplot).Title.String;
 end
 
-% function grid_equal_pixel_axes(images, rows, cols)
-% fig = figure('Units','pixels');
-% figPos = fig.Position;            % [left bottom width height] in pixels
-% figW = figPos(3); figH = figPos(4);
-% 
-% % desired axes inner pixel size (per tile)
-% tileW = floor(figW / cols);
-% tileH = floor(figH / rows);
-% 
-% % Nimages = size(images,1);
-% kth_image = 1;
-% for r = 1:rows
-% 	for c = 1:cols
-% 		if ~isempty(images{kth_image})
-% 
-% 			subplot(rows,cols,kth_image)
-% 			% compute normalized position for axes so tiles are same pixel size
-% 			left = ( (c-1)*tileW ) / figW;
-% 			bottom = 1 - ( r*tileH ) / figH;   % normalized bottom coordinate
-% 			pos = [left, bottom, tileW/figW, tileH/figH];
-% 			ax = axes('Parent',fig,'Units','normalized','Position',pos);
-% 			% show image so that one image pixel maps to one data unit
-% 			imshow(images{kth_image}, 'Parent', ax, 'InitialMagnification', 'fit');
-% 			% set XData/YData so pixel centers align with integer data coords
-% 			[nr,nc,~] = size(images{kth_image});
-% 			set(findobj(ax,'Type','image'), 'XData', [0.5 nc+0.5], 'YData', [0.5 nr+0.5]);
-% 			axis(ax,'image','off');
-% 			daspect(ax,[1 1 1]);
-% 
-% 		end
-% 		kth_image = kth_image+1;
-% 	end
-% end
-% end
+allClickedPoints = nan(9,2);
+
+%%%%
+% Have the user select features to match
+for ith_view = 1:length(viewNames)
+	if ~isempty(viewNames{ith_view}) && any(ith_view==viewNumbers)
+
+		% titleToMatch = axesInThisFigure(ith_view).Title.String;
+		% thisIndex = find(strcmp(titleToMatch,viewNames),1);
+
+		viewToMatch = viewNames{ith_view};
+		axisIndex = find(strcmp(existingTitles,viewToMatch),1);
+		axisHandle = axesInThisFigure(axisIndex);
+
+		if imageDimensionToAlign==1
+			directionString = 'ImageX';
+		elseif imageDimensionToAlign==2
+			directionString = 'ImageY';
+
+			% Flip axis and image to correct orientation?
+			orientationString = get(axisHandle,'YDir');
+			if strcmpi(orientationString,'reverse')
+				set(axisHandle,'YDir', 'normal');
+				tempImage = get(axisHandle,'Children');
+				tempArray = tempImage.CData;
+				fixedArray = flipud(tempArray);
+				tempImage.CData = fixedArray;
+				set(axisHandle,'Children',tempImage);
+			end
+		else
+			error('unrecognized dimension: %.0f',imageDimensionToAlign);
+		end
+		
+		queryTitle = sprintf('Select a feature in this view to align this column in the %s direction',directionString);
+		thisTitle = get(axisHandle,'Title');
+		set(thisTitle,'String',queryTitle);
+
+		pts = fcn_INTERNAL_pickPixelsInSubplot(axisHandle);
+
+		% Set the title back to prior value
+		set(thisTitle,'String',viewToMatch);
+
+		allClickedPoints(ith_view,:) = pts;
+
+		% figure(figAllViews);
+		% subplot(3,3,ith_view);
+		% imshow(temp, 'XData',[1 size(temp,2)], 'YData',[1 size(temp,1)]);
+		% title(sprintf('%s',viewNames{ith_view}));
+	end
+end
+
+%%%%
+% Find average point and sign of corrections
+goodClickedPoints = allClickedPoints(~all(isnan(allClickedPoints),2),:);
+averagePoint = mean(goodClickedPoints(:,imageDimensionToAlign),1);
+
+%%%%%
+% Apply correction
+for ith_view = 1:length(viewNames)
+	if ~isempty(viewNames{ith_view}) && any(ith_view==viewNumbers)
+
+		% titleToMatch = axesInThisFigure(ith_view).Title.String;
+		% thisIndex = find(strcmp(titleToMatch,viewNames),1);
+
+		viewToMatch = viewNames{ith_view};
+		axisIndex = find(strcmp(existingTitles,viewToMatch),1);
+		axisHandle = axesInThisFigure(axisIndex);
+
+		oldPosition = get(axisHandle,'Position');
+		newPosition = oldPosition;
+
+		pixelOffset = allClickedPoints(ith_view, imageDimensionToAlign) - averagePoint;
+		newPosition(imageDimensionToAlign) = oldPosition(imageDimensionToAlign) - pixelOffset*minRatioDistanceperPixel;
+
+		set(axisHandle,'Position',newPosition);
+	end
+end
+end % Ends fcn_INTERNAL_alignSubplots
