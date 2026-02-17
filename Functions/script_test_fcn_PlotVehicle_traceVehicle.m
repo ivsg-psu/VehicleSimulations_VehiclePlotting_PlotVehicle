@@ -45,37 +45,148 @@ figAllViews = 9999;
 vehicleImageFilePathString = fullfile(pwd,'Data','2017_Ford_Transit_ConnectXLTWagon.png');
 allViewsFigurePathString = fullfile(pwd,'Data','vehicleViews.fig');
 
-viewNames = {'Top View', 'Passenger Side View','Drivers Side View','Front View', 'Rear View'};
-viewNumbers = [1; 4; 6; 5; 8];
+viewNames = {
+	'Top View',...
+	'',...
+	'',...	
+	'Passenger Side View',...
+	'Front View', ...
+	'Drivers Side View',...
+	'',...
+	'Rear View',...
+	''};
 
-if 1==1 %~exist(allViewsFigure,'file')
+viewDimensionDirections = [
+	1 1 0; 
+	0 0 0;
+	0 0 0;
+	1 0 1; 
+	-1 0 1; 
+	0 1 1; 
+	0 0 0; 
+	0 -1 1;
+	0 0 0];
+
+if 1==1
+	% if ~exist(allViewsFigure,'file')
 	imgAllViews = imread(vehicleImageFilePathString);   % load image into workspace
 	figure(figNum);                      % open new figure
 	imshow(imgAllViews);                   % display image
 	axis image off;              % keep aspect ratio, hide axes if desired
+	images = cell(9,1);
 
 	for ith_view = 1:length(viewNames)
-		figure(figNum);
-		fprintf(1,'Select the %s\n', viewNames{ith_view});
-		temp = fcn_INTERNAL_selectImageRegion(imgAllViews);
-		figure(figAllViews); subplot(3,3,viewNumbers(ith_view));
-		imshow(temp);
-		title(sprintf('%s',viewNames{ith_view}));
+		if ~isempty(viewNames{ith_view})
+			figure(figNum);
+			fprintf(1,'Select the %s\n', viewNames{ith_view});
+			axesInThisFigure = fcn_INTERNAL_selectImageRegion(imgAllViews);
+			images{ith_view} = axesInThisFigure;
+
+			% figure(figAllViews);
+			% subplot(3,3,ith_view);
+			% imshow(temp, 'XData',[1 size(temp,2)], 'YData',[1 size(temp,1)]);
+			% title(sprintf('%s',viewNames{ith_view}));
+		end
 	end
 
+
+	% Align all the pixels
+	figure(figAllViews);
+	clf;
+	% grid_equal_pixel_axes(images, 3, 3)
+	rescalingFactor = 1.6;
+	demo_tiled_equal_size(images, viewDimensionDirections, rescalingFactor, viewNames)
+
+	scaleImagesInFigure(figAllViews, []);
+	equalizeImagePixelScale(figAllViews, []);
 	savefig(figAllViews, allViewsFigurePathString);
 end
 
+%% 
 workingFig = openfig(allViewsFigurePathString);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%
+%% FUNCTIONALIZE THIS
+% Make sure all the subplots are aligned
+
+% Align first column
+viewNumbers = [1; 4; 7]; % Define view numbers for alignment
+dimensionsEachView = viewDimensionDirections(viewNumbers,:);
+nonEmptyViews = viewNumbers(~all(dimensionsEachView==0,2));
+goodDimensionsEachView = viewDimensionDirections(nonEmptyViews,:);
+dimensionToAlign = find(prod(goodDimensionsEachView,1)~=0);
+
+axesInThisFigure = get(workingFig,'Children');
+existingTitles = cell(length(axesInThisFigure),1);
+for ith_subplot = 1:length(axesInThisFigure)
+	existingTitles{ith_subplot,1} = axesInThisFigure(ith_subplot).Title.String;
+end
+
+
+allClickedPoints = nan(9,2);
+
+for ith_view = 1:length(viewNames)
+
+
+	if ~isempty(viewNames{ith_view}) && any(ith_view==viewNumbers)
+
+		% titleToMatch = axesInThisFigure(ith_view).Title.String;
+		% thisIndex = find(strcmp(titleToMatch,viewNames),1);
+
+		viewToMatch = viewNames{ith_view};
+		axisIndex = find(strcmp(existingTitles,viewToMatch),1);
+		axisHandle = axesInThisFigure(axisIndex);
+
+		if dimensionToAlign==1
+			directionString = 'X';
+		elseif dimensionToAlign==2
+			directionString = 'Y';
+		elseif dimensionToAlign==3
+			directionString = 'Z';
+		else
+			error('unrecognized dimension: %.0f',dimensionToAlign);
+		end
+		
+		queryTitle = sprintf('Select a feature in this view to align this column in the %s direction',directionString);
+		thisTitle = get(axisHandle,'Title');
+		set(thisTitle,'String',queryTitle);
+
+		pts = fcn_INTERNAL_pickPixelsInSubplot(axisHandle);
+
+		% Set the title back to prior value
+		set(thisTitle,'String',viewToMatch);
+
+		allClickedPoints(ith_view,:) = pts;
+
+		% figure(figAllViews);
+		% subplot(3,3,ith_view);
+		% imshow(temp, 'XData',[1 size(temp,2)], 'YData',[1 size(temp,1)]);
+		% title(sprintf('%s',viewNames{ith_view}));
+	end
+end
+goodClickedPoints = allClickedPoints(~all(isnan(allClickedPoints),2),:);
+
+if find(goodDimensionsEachView(1,:),1)==dimensionToAlign
+	indexToAlign = 1; % Aligning X
+else
+	indexToAlign = 2; % Aligning Y
+end
+averagePoint = goodClickedPoints(indexToAlign);
+
+%% Call function to align these points
+
+
+disp(allClickedPoints);
+
+
+
+%%
 % Align the images with each other
 
-temp = get(workingFig,'Children');
+axesInThisFigure = get(workingFig,'Children');
 
 for ith_view = 1:length(viewNames)
 	
-	titleToMatch = temp(ith_view).Title.String;
+	titleToMatch = axesInThisFigure(ith_view).Title.String;
 
 	thisIndex = find(strcmp(titleToMatch,viewNames),1);
 
@@ -88,7 +199,7 @@ for ith_view = 1:length(viewNames)
 
     fprintf(1,'Aligning %s...\n', viewName);
 	fprintf(1,'Select a feature to align image in %s:\n',viewName);
-	pts = fcn_INTERNAL_pickPixelsInSubplot(temp(ith_view));
+	pts = fcn_INTERNAL_pickPixelsInSubplot(axesInThisFigure(ith_view));
 end
 
 
@@ -465,9 +576,9 @@ img = imObj.CData;
 nx = size(img,2); ny = size(img,1);
 
 pts = zeros(0,2);
-hold on;
+hold(ax,'on');
 
-hMark = plot(ax, NaN, NaN, 'ro', 'MarkerFaceColor','r');
+hMark = plot(ax, nx/2, ny/2, 'ro', 'MarkerFaceColor','r');
 
 % ensure clicks hit the image
 set(imObj,'HitTest','on');
@@ -523,3 +634,220 @@ end
 
 pts = pts(end,:);
 end
+
+function scaleImagesInFigure(fig, scale)
+% scaleImagesInFigure  Set same pixel scaling for all images in a figure.
+%   scaleImagesInFigure(fig, scale) sets each image's XData and YData so
+%   one image pixel equals 'scale' axis units. 'fig' is a figure handle.
+%   If scale is omitted or empty, scale = 1 (one axis unit per pixel).
+%
+%   Example:
+%     fig = figure;
+%     ax1 = subplot(1,2,1); imshow(im1, 'Parent', ax1);
+%     ax2 = subplot(1,2,2); imshow(im2, 'Parent', ax2);
+%     scaleImagesInFigure(fig, 2);  % double the pixel size in axis units
+
+if nargin<1 || isempty(fig), fig = gcf; end
+if ~ishandle(fig) || ~strcmp(get(fig,'Type'),'figure')
+    error('First argument must be a figure handle.');
+end
+if nargin<2 || isempty(scale), scale = 1; end
+validateattributes(scale, {'numeric'},{'scalar','positive'});
+
+% Find all axes in the figure
+axesList = findall(fig, 'Type', 'axes');
+
+for k = 1:numel(axesList)
+    ax = axesList(k);
+    % skip polar/geographic/UI axes that don't host image objects the same way
+    if ~isgraphics(ax, 'axes'), continue; end
+
+    % find image objects in this axes
+    imgs = findall(ax, 'Type', 'image');
+    if isempty(imgs), continue; end
+
+    for j = 1:numel(imgs)
+        imObj = imgs(j);
+        % get image size from CData
+        C = imObj.CData;
+        if isempty(C), continue; end
+        [nrows, ncols, ~] = size(C);
+
+        % Set XData and YData so each pixel occupies 'scale' axis units.
+        % We place pixel centers at:
+        %   x centers = scale*(0.5 : ncols-0.5)
+        %   y centers = scale*(0.5 : nrows-0.5)
+        % image interprets XData/YData as locations for first and last pixel centers when given two-element vectors.
+        xStart = scale*0.5;
+        xEnd   = scale*(ncols - 0.5);
+        yStart = scale*0.5;
+        yEnd   = scale*(nrows - 0.5);
+
+        % Assign XData/YData (two-element vectors)
+        set(imObj, 'XData', [xStart xEnd], 'YData', [yStart yEnd]);
+
+        % Ensure axes limits preserve the image aspect ratio and show full image
+        % (optional) expand axes limits to exactly contain image extents
+        ax.XLim = [xStart - scale*0.5, xEnd + scale*0.5];
+        ax.YLim = [yStart - scale*0.5, yEnd + scale*0.5];
+
+        % Keep correct aspect ratio
+        daspect(ax, [1 1 1]);
+    end
+end
+end
+
+function equalizeImagePixelScale(fig, scale)
+% equalizeImagePixelScale(fig, scale)
+%   Set all images in figure 'fig' so one image pixel = 'scale' axis units.
+%   If scale omitted, scale = 1 (one axis unit per pixel).
+%   You should arrange subplots so axes have the same on-screen size
+%   (e.g. using tight_subplot, subplot with identical Position, or tiledlayout).
+
+if nargin<1 || isempty(fig), fig = gcf; end
+if nargin<2 || isempty(scale), scale = 1; end
+
+% find all axes and image objects
+axs = findall(fig,'Type','axes');
+for ax = axs(:).'
+    imgs = findall(ax,'Type','image');
+    if isempty(imgs), continue; end
+    for imObj = imgs.'
+        C = imObj.CData;
+        if isempty(C), continue; end
+        [nrows, ncols, ~] = size(C);
+        % set XData/YData so pixel centers are at:
+        %   x centers = scale*(0.5 : ncols-0.5)
+        %   y centers = scale*(0.5 : nrows-0.5)
+        xStart = scale*0.5;
+        xEnd   = scale*(ncols - 0.5);
+        yStart = scale*0.5;
+        yEnd   = scale*(nrows - 0.5);
+        set(imObj, 'XData', [xStart xEnd], 'YData', [yStart yEnd]);
+        % ensure 1:1 data aspect ratio
+        daspect(ax, [1 1 1]);
+        % expand axes limits to include full image
+        ax.XLim = [xStart - scale*0.5, xEnd + scale*0.5];
+        ax.YLim = [yStart - scale*0.5, yEnd + scale*0.5];
+    end
+end
+end
+
+
+%%
+function demo_tiled_equal_size(images, viewDimensionDirections, rescalingFactor, viewNames)
+% images is a cell array of image arrays
+Nimages = numel(images);
+% cols = ceil(sqrt(Nimages));
+% rows = ceil(Nimages/cols);
+% t = tiledlayout(rows, cols, 'TileSpacing','compact', 'Padding','compact');
+
+% Show the result
+for kth_image = 1:Nimages
+	if ~isempty(images{kth_image})
+		thisImage = images{kth_image};
+		ax = subplot(3,3,kth_image);
+		xStart = 1;
+		xEnd = size(thisImage,2);
+		yStart = 1;
+		yEnd = size(thisImage,1);
+		imshow(thisImage, 'Parent', ax, 'XData', [xStart xEnd], 'YData', [yStart yEnd])
+		set(gca,'Units','pixels');
+		% daspect(ax,[1 1 1]);      % one data unit = same length x and y
+		% axis(ax, 'off');
+	end
+end
+
+% Find the min ratios of pixels per distance
+minXYZratioDistancePerPixel = [inf inf inf];
+for kth_image = 1:Nimages
+	if ~isempty(images{kth_image})
+		ax = subplot(3,3,kth_image);
+
+		thisImage = images{kth_image};
+		pixelsInX = size(thisImage,2)-1; % X in image
+		pixelsInY = size(thisImage,1)-1; % Y in image
+
+
+		% Find the distances spanned by these pixels.
+		% Format: [left bottom width height]
+		p = get(ax,'Position');
+
+		ratioDistancePerPixelX =  p(3)/pixelsInX;
+		ratioDistanceperPixelY =  p(4)/pixelsInY;	
+
+		dimensionsToCheck = find(viewDimensionDirections(kth_image,:)~=0);
+		firstDimension = dimensionsToCheck(1);
+		secondDimension = dimensionsToCheck(2);
+
+		% Keep the smallest distance per pixel - this will be the most
+		% compact view
+		if minXYZratioDistancePerPixel(firstDimension)>ratioDistancePerPixelX
+			minXYZratioDistancePerPixel(firstDimension)=ratioDistancePerPixelX;
+		end
+		if minXYZratioDistancePerPixel(secondDimension)>ratioDistanceperPixelY
+			minXYZratioDistancePerPixel(secondDimension)=ratioDistanceperPixelY;
+		end
+
+	end
+end
+minRatioDistanceperPixel = rescalingFactor*min(minXYZratioDistancePerPixel);
+
+for kth_image = 1:Nimages
+	if ~isempty(images{kth_image})
+		ax = subplot(3,3,kth_image);
+
+		thisImage = images{kth_image};
+		pixelsInX = size(thisImage,2)-1; % X in image
+		pixelsInY = size(thisImage,1)-1; % Y in image
+
+		newRangeX = floor(pixelsInX*minRatioDistanceperPixel);
+		newRangeY = floor(pixelsInY*minRatioDistanceperPixel);
+
+		% Resize the axes
+		p = get(ax,'Position');
+		centerP = [p(1)+p(3)/2 p(2)+p(4)/2];
+		newBottomCorner = centerP -[newRangeX newRangeY]/2;
+		newP = [newBottomCorner newRangeX newRangeY];
+		
+		set(ax,'Position',newP);
+		title(sprintf('%s',viewNames{kth_image}))
+
+	end
+end
+end
+
+% function grid_equal_pixel_axes(images, rows, cols)
+% fig = figure('Units','pixels');
+% figPos = fig.Position;            % [left bottom width height] in pixels
+% figW = figPos(3); figH = figPos(4);
+% 
+% % desired axes inner pixel size (per tile)
+% tileW = floor(figW / cols);
+% tileH = floor(figH / rows);
+% 
+% % Nimages = size(images,1);
+% kth_image = 1;
+% for r = 1:rows
+% 	for c = 1:cols
+% 		if ~isempty(images{kth_image})
+% 
+% 			subplot(rows,cols,kth_image)
+% 			% compute normalized position for axes so tiles are same pixel size
+% 			left = ( (c-1)*tileW ) / figW;
+% 			bottom = 1 - ( r*tileH ) / figH;   % normalized bottom coordinate
+% 			pos = [left, bottom, tileW/figW, tileH/figH];
+% 			ax = axes('Parent',fig,'Units','normalized','Position',pos);
+% 			% show image so that one image pixel maps to one data unit
+% 			imshow(images{kth_image}, 'Parent', ax, 'InitialMagnification', 'fit');
+% 			% set XData/YData so pixel centers align with integer data coords
+% 			[nr,nc,~] = size(images{kth_image});
+% 			set(findobj(ax,'Type','image'), 'XData', [0.5 nc+0.5], 'YData', [0.5 nr+0.5]);
+% 			axis(ax,'image','off');
+% 			daspect(ax,[1 1 1]);
+% 
+% 		end
+% 		kth_image = kth_image+1;
+% 	end
+% end
+% end
