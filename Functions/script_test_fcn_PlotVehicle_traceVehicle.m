@@ -68,8 +68,8 @@ viewDimensionDirections = [
 	0 -1 1;% subplot(3,3,8) - (-Y)Z
 	0 0 0];% subplot(3,3,9) - empty
 
-%if 1==1
-if ~exist(allViewsFigurePathString,'file')
+if 1==1
+% if ~exist(allViewsFigurePathString,'file')
 	imgAllViews = imread(vehicleImageFilePathString);   % load image into workspace
 	figure(figNum);                      % open new figure
 	imshow(imgAllViews);                   % display image
@@ -103,12 +103,10 @@ if ~exist(allViewsFigurePathString,'file')
 	savefig(figAllViews, allViewsFigurePathString);
 end
 
-%% 
-workingFig = openfig(allViewsFigurePathString);
-
 %% Make sure all the subplots are aligned
 
 % Align first column
+workingFig = openfig(alignedViewsFigurePathString);
 viewNumbers = [1; 4; 7]; % Define view numbers for alignment
 imageDimensionToAlign = 1;
 fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistanceperPixel, imageDimensionToAlign)
@@ -117,6 +115,7 @@ fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistancep
 savefig(workingFig, alignedViewsFigurePathString)
 
 % Align second column
+workingFig = openfig(alignedViewsFigurePathString);
 viewNumbers = [2; 5; 8]; % Define view numbers for alignment
 imageDimensionToAlign = 1; 
 fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistanceperPixel, imageDimensionToAlign)
@@ -124,11 +123,10 @@ fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistancep
 % Save results
 savefig(workingFig, alignedViewsFigurePathString)
 
-%%
 
-workingFig = openfig(alignedViewsFigurePathString);
 
 % Align second row
+workingFig = openfig(alignedViewsFigurePathString);
 viewNumbers = [4; 5; 6]; % Define view numbers for alignment
 imageDimensionToAlign = 2; 
 fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistanceperPixel, imageDimensionToAlign)
@@ -137,35 +135,53 @@ fcn_INTERNAL_alignSubplots(workingFig, viewNames, viewNumbers, minRatioDistancep
 savefig(workingFig, alignedViewsFigurePathString)
 
 
-%% Call function to align these points
+%% Set up synchronized zoom
 
-
-disp(allClickedPoints);
-
-
-
-%%
-% Align the images with each other
+%%%% 
+% Find all the zoom points
 
 axesInThisFigure = get(workingFig,'Children');
-
-for ith_view = 1:length(viewNames)
-	
-	titleToMatch = axesInThisFigure(ith_view).Title.String;
-
-	thisIndex = find(strcmp(titleToMatch,viewNames),1);
-
-	if isempty(thisIndex)
-		error('Unable to match titles to plots!?');
-	end	
-
-	viewName = viewNames{thisIndex};	
-	viewNumber = viewNumbers(thisIndex,1);
-
-    fprintf(1,'Aligning %s...\n', viewName);
-	fprintf(1,'Select a feature to align image in %s:\n',viewName);
-	pts = fcn_INTERNAL_pickPixelsInSubplot(axesInThisFigure(ith_view));
+existingTitles = cell(length(axesInThisFigure),1);
+for ith_subplot = 1:length(axesInThisFigure)
+	existingTitles{ith_subplot,1} = axesInThisFigure(ith_subplot).Title.String;
 end
+
+allClickedPoints = nan(9,2);
+
+%%%%
+% Have the user select features to match
+for ith_view = 1:length(viewNames)
+	if ~isempty(viewNames{ith_view}) && any(ith_view==viewNumbers)
+
+		% titleToMatch = axesInThisFigure(ith_view).Title.String;
+		% thisIndex = find(strcmp(titleToMatch,viewNames),1);
+
+		viewToMatch = viewNames{ith_view};
+		axisIndex = find(strcmp(existingTitles,viewToMatch),1);
+		axisHandle = axesInThisFigure(axisIndex);
+
+
+
+		% Find image object in axes (assume one image shown)
+		imObj = findobj(axisHandle,'Type','image');
+		if isempty(imObj)
+			error('No image found in the specified axes.');
+		end
+		img = imObj.CData;
+		nx = size(img,2);
+		ny = size(img,1);
+
+		figPt = dataToFig(workingFig, axisHandle, [nx ny], 'pixels');
+
+	end
+end
+
+
+axesInThisFigure = get(workingFig,'Children');
+syncZoomByFigurePoints(workingFig, axesInThisFigure, figPoints, units)
+
+%%
+
 
 
 
@@ -597,7 +613,7 @@ end
         allPoints(end+1,:) = [col row];
 
 		setappdata(fig,'pickPts',allPoints);
-		setappdata(fig,'cPts',zeros(0,2))
+		setappdata(fig,'cPts',figCoordinates)
         
 		set(hMark,'XData',allPoints(:,1),'YData',allPoints(:,2));
         drawnow;
@@ -772,7 +788,9 @@ for kth_image = 1:Nimages
 
 	end
 end
-minRatioDistanceperPixel = rescalingFactor*min(minXYZratioDistancePerPixel);
+
+minRatioDistanceperPixel = min(minXYZratioDistancePerPixel);
+resizedDistancePerPixel = rescalingFactor*minRatioDistanceperPixel;
 
 for kth_image = 1:Nimages
 	if ~isempty(images{kth_image})
@@ -782,8 +800,8 @@ for kth_image = 1:Nimages
 		pixelsInX = size(thisImage,2)-1; % X in image
 		pixelsInY = size(thisImage,1)-1; % Y in image
 
-		newRangeX = floor(pixelsInX*minRatioDistanceperPixel);
-		newRangeY = floor(pixelsInY*minRatioDistanceperPixel);
+		newRangeX = floor(pixelsInX*resizedDistancePerPixel);
+		newRangeY = floor(pixelsInY*resizedDistancePerPixel);
 
 		% Resize the axes
 		p = get(ax,'Position');
@@ -844,12 +862,12 @@ for ith_view = 1:length(viewNames)
 		thisTitle = get(axisHandle,'Title');
 		set(thisTitle,'String',queryTitle);
 
-		pts = fcn_INTERNAL_pickPixelsInSubplot(axisHandle);
+		[~, figCoordinates] = fcn_INTERNAL_pickPixelsInSubplot(axisHandle);
 
 		% Set the title back to prior value
 		set(thisTitle,'String',viewToMatch);
 
-		allClickedPoints(ith_view,:) = pts;
+		allClickedPoints(ith_view,:) = figCoordinates(end,:);
 
 		% figure(figAllViews);
 		% subplot(3,3,ith_view);
@@ -861,7 +879,7 @@ end
 %%%%
 % Find average point and sign of corrections
 goodClickedPoints = allClickedPoints(~all(isnan(allClickedPoints),2),:);
-averagePoint = mean(goodClickedPoints(:,imageDimensionToAlign),1);
+averagePoint = round(mean(goodClickedPoints(:,imageDimensionToAlign),1));
 
 %%%%%
 % Apply correction
@@ -885,3 +903,207 @@ for ith_view = 1:length(viewNames)
 	end
 end
 end % Ends fcn_INTERNAL_alignSubplots
+
+
+%% syncZoomByFigurePoints
+function syncZoomByFigurePoints(fig, axesList, figPoints, units)
+% syncZoomByFigurePoints Synchronize zoom across axes using figure coords.
+%   syncZoomByFigurePoints(fig, axesList, figPoints, units)
+%   - fig: figure handle
+%   - axesList: vector of axes handles (one per subplot)
+%   - figPoints: Nx2 array of [x y] points in figure coordinates (matching axesList order)
+%   - units: 'pixels' (default) or 'normalized' - units for figPoints
+%
+% Example:
+%   f = figure; t = tiledlayout(2,3);
+%   axs = gobjects(6,1);
+%   for k=1:6, axs(k)=nexttile(k); imshow(rand(200)); end
+%   % define focal points in figure pixels (e.g. center of each axes)
+%   f.Units = 'pixels'; fp = zeros(6,2);
+%   for k=1:6, p = axs(k).Position; fp(k,:) = [p(1)+p(3)/2, p(2)+p(4)/2]; end
+%   syncZoomByFigurePoints(f, axs, fp, 'normalized');  % use normalized if points are normalized
+
+if nargin<4 || isempty(units), units = 'normalized'; end
+validateattributes(fig, {'matlab.ui.Figure'},{'scalar'});
+n = numel(axesList);
+if size(figPoints,1) ~= n, error('figPoints must match number of axes'); end
+
+% Convert figPoints into the figure Units requested
+oldFigUnits = fig.Units;
+cleanupFigUnits = onCleanup(@() set(fig,'Units',oldFigUnits));
+fig.Units = units;
+
+% Precompute per-axes mapping function from figure point -> axes data coordinate
+mapFigToData = cell(n,1);
+for k = 1:n
+    ax = axesList(k);
+    % We'll compute mapping using pixels within figure units chosen above:
+    % 1) Get axes position in the same fig units
+    figPos = fig.Position; %#ok<NASGU>
+    axUnitsOld = ax.Units;
+    ax.Units = units;
+    axPos = ax.Position; % [left bottom width height] in fig units
+    ax.Units = axUnitsOld;
+
+    % Gather image XData/YData if image present (use first image), otherwise assume default axes data coords
+    im = findobj(ax,'Type','image','-and','Visible','on');
+    if ~isempty(im)
+        im = im(1);
+        xd = get(im,'XData'); yd = get(im,'YData');
+        % Normalize to two-element vectors for mapping first/last pixel centers
+        if numel(xd)==2, xDataVec = xd; else xDataVec = [1 size(im.CData,2)]; end
+        if numel(yd)==2, yDataVec = yd; else yDataVec = [1 size(im.CData,1)]; end
+    else
+        % use axes current limits as data extents
+        xDataVec = xlim(ax);
+        yDataVec = ylim(ax);
+    end
+
+    % Create mapping closure: figPoint -> data coordinate in this axes
+    axLeft = axPos(1); axBottom = axPos(2); axW = axPos(3); axH = axPos(4);
+    mapFigToData{k} = @(figPt) localFigToData(figPt, axLeft, axBottom, axW, axH, xDataVec, yDataVec);
+end
+
+% Store original limits for computing relative scale
+origLimits = cell(n,1);
+for k=1:n
+    origLimits{k} = [xlim(axesList(k)), ylim(axesList(k))];
+end
+
+% Guard to prevent recursive updates
+isUpdating = false;
+
+% Create zoom object and set callback
+z = zoom(fig);
+set(z, 'ActionPostCallback', @(obj,ev) zoomPostCallback(obj, ev));
+set(z, 'Enable', 'on');
+
+% Return a cleanup function in case caller wants to stop synchronization:
+cleanupHandle = onCleanup(@() cleanupFunc(z));
+
+    function cleanupFunc(zobj)
+        try
+            set(zobj, 'ActionPostCallback', []);
+            set(zobj, 'Enable', 'off');
+        catch
+        end
+    end
+
+    function zoomPostCallback(~, ev)
+        if isUpdating, return; end
+        isUpdating = true;
+        try
+            srcAx = ev.Axes; % axes that was zoomed
+            % find index of srcAx in axesList
+            idx = find(axesList==srcAx,1);
+            if isempty(idx)
+                % if zoom happened on an axes we didn't list, ignore
+                isUpdating = false; return;
+            end
+
+            % compute scale factors relative to original limits (use current limits / previous limits)
+            newXLim = xlim(srcAx); newYLim = ylim(srcAx);
+            oldXLim = origLimits{idx}(1:2); oldYLim = origLimits{idx}(3:4);
+
+            % Avoid division by zero
+            if diff(oldXLim)==0 || diff(oldYLim)==0
+                isUpdating = false; return;
+            end
+            sx = diff(newXLim)/diff(oldXLim);
+            sy = diff(newYLim)/diff(oldYLim);
+
+            % For each axes compute its own center in data coords from the provided figPoints
+            for k2 = 1:n
+                ax2 = axesList(k2);
+                % Map user-specified fig point into this axes data coordinates
+                center = mapFigToData{k2}(figPoints(k2,:));
+                cx = center(1); cy = center(2);
+
+                % Use original limits for computing half sizes (so zoom ratio is relative to orig)
+                orig = origLimits{k2};
+                hx = diff(orig(1:2))/2;
+                hy = diff(orig(3:4))/2;
+
+                % New half ranges
+                newHx = hx * sx;
+                newHy = hy * sy;
+
+                % Set limits centered at the focal point
+                newXL = [cx - newHx, cx + newHx];
+                newYL = [cy - newHy, cy + newHy];
+
+                % Apply limits
+                xlim(ax2, newXL);
+                ylim(ax2, newYL);
+            end
+
+        catch ME
+            warning('syncZoomByFigurePoints:callbackError','%s',ME.message);
+        end
+        isUpdating = false;
+    end
+
+    function ptData = localFigToData(figPt, axLeft, axBottom, axW, axH, xDataVec, yDataVec)
+        % figPt: [x y] in same units as axLeft/axW
+        % map to normalized [0..1] inside axes
+        fx = (figPt(1) - axLeft) / axW;
+        fy = (figPt(2) - axBottom) / axH;
+        % clamp
+        fx = min(max(fx,0),1);
+        fy = min(max(fy,0),1);
+        % map to data: linear interpolation from XData/YData endpoints
+        x = xDataVec(1) + fx * (xDataVec(2) - xDataVec(1));
+        y = yDataVec(1) + fy * (yDataVec(2) - yDataVec(1));
+        ptData = [x y];
+    end
+end
+
+
+
+function figPt = dataToFig(fig, ax, dataPt, figUnits)
+% dataToFig Convert a data point in axes to figure coordinates.
+%   figPt = dataToFig(fig, ax, dataPt)           % default 'pixels'
+%   figPt = dataToFig(fig, ax, dataPt, 'normalized')
+%   dataPt: [x y] in axes data coordinates
+%   figPt:  [x y] in figure units specified by figUnits
+if nargin<4 || isempty(figUnits), figUnits = 'pixels'; end
+
+% Save/restore units
+oldFigUnits = fig.Units; oldAxUnits = ax.Units;
+cleanup = onCleanup(@() set(fig,'Units',oldFigUnits) && set(ax,'Units',oldAxUnits));
+fig.Units = figUnits;
+ax.Units  = figUnits;
+
+% Axes position in figure units
+axPos = ax.Position;           % [left bottom width height]
+
+% Determine data extents (prefer image XData/YData if present)
+im = findobj(ax,'Type','image','-depth',1);
+if ~isempty(im)
+    im = im(1);
+    xd = get(im,'XData'); yd = get(im,'YData');
+    % ensure two-element ranges
+    if numel(xd)~=2, xd = [min(xd(:)) max(xd(:))]; end
+    if numel(yd)~=2, yd = [min(yd(:)) max(yd(:))]; end
+else
+    xd = xlim(ax); yd = ylim(ax);
+end
+
+% fraction inside axes (0..1)
+fx = (dataPt(1) - xd(1)) / (xd(2) - xd(1));
+fy = (dataPt(2) - yd(1)) / (yd(2) - yd(1));
+
+% account for YDir
+if strcmpi(ax.YDir,'reverse')
+    fy = 1 - fy;
+end
+
+% clamp
+fx = min(max(fx,0),1);
+fy = min(max(fy,0),1);
+
+% map to figure coordinates
+figX = axPos(1) + fx * axPos(3);
+figY = axPos(2) + fy * axPos(4);
+figPt = [figX figY];
+end
