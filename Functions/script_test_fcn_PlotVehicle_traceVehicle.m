@@ -42,6 +42,9 @@ figure(figNum); clf;
 
 figAllViews = 9999;
 
+vehicleNameString = '2017_Ford_Transit_ConnectXLTWagon';
+vehicleParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameString, (figNum));
+
 vehicleImageFilePathString = fullfile(pwd,'Data','2017_Ford_Transit_ConnectXLTWagon');
 allViewsFigurePathString = fullfile(pwd,'Data','vehicleViews.fig');
 alignedViewsFigurePathString = fullfile(pwd,'Data','vehicleViewsAligned.fig');
@@ -68,6 +71,17 @@ viewDimensionDirections = [
 	0 -1 1;% subplot(3,3,8) - (-Y)Z
 	0 0 0];% subplot(3,3,9) - empty
 
+imageMinsMaxs = [
+	1 1 0; % subplot(3,3,1) - XY
+	0 0 0; % subplot(3,3,2) - empty
+	0 0 0; % subplot(3,3,3) - empty
+	1 0 1; % subplot(3,3,4) - XZ
+	0 1 1; % subplot(3,3,5) - YZ 
+	-1 0 1;% subplot(3,3,6) - (-X)Z
+	0 0 0; % subplot(3,3,7) - empty
+	0 -1 1;% subplot(3,3,8) - (-Y)Z
+	0 0 0];% subplot(3,3,9) - empty
+
 % Have all the views been saved/grabbed?
 Nviews = 9;
 subImagePathStrings = cell(Nviews,1);
@@ -83,9 +97,9 @@ for ith_view = 1:length(viewNames)
 	end
 end
 
-URHERE
-if 1==1
-% if ~exist(allViewsFigurePathString,'file')
+%% If images don't already exist as separate, saved views, query user and
+% save them
+if 0==flagAllExist
 	imgAllViews = imread(cat(2,vehicleImageFilePathString,'.png'));   % load image into workspace
 	figure(figNum);                      % open new figure
 	imshow(imgAllViews);                   % display image
@@ -98,14 +112,9 @@ if 1==1
 
 			figure(figNum);
 			fprintf(1,'Select the %s\n', thisViewName);
-			axesInThisFigure = fcn_INTERNAL_selectImageRegion(imgAllViews);
-			images{ith_view} = axesInThisFigure;
-
-			% Save views so these can be pulled later, if needed
-			subImageFilePathString = cat(2,vehicleImageFilePathString,'_',thisViewName,'.png');
-			
-			URHERE
-			imwrite(images{ith_view}, subImageFilePathString); % Save the extracted view image
+			imageFromThisFigure = fcn_INTERNAL_selectImageRegion(imgAllViews);
+			images{ith_view} = imageFromThisFigure;					
+			imwrite(imageFromThisFigure, subImagePathStrings{ith_view}); % Save the extracted view image
 
 
 			% figure(figAllViews);
@@ -114,21 +123,74 @@ if 1==1
 			% title(sprintf('%s',viewNames{ith_view}));
 		end
 	end
-
-
-	% Align all the pixels
-	figure(figAllViews);
-	clf;
-	% grid_equal_pixel_axes(images, 3, 3)
-	rescalingFactor = 1.6;
-	minRatioDistanceperPixel = demo_tiled_equal_size(images, viewDimensionDirections, rescalingFactor, viewNames);
-
-	scaleImagesInFigure(figAllViews, []);
-	equalizeImagePixelScale(figAllViews, []);
-	savefig(figAllViews, allViewsFigurePathString);
 end
 
-%% Make sure all the subplots are aligned
+%% Define metersPerPixel
+% Open up the side views and ask user to select points to 
+figure(figNum);
+clf;
+imgThisView = imread(subImagePathStrings{4});
+imshow(imgThisView);
+
+
+%% Create one figure (XYZ) that has all images inside it
+figure(figNum);
+for ith_view = 1:length(viewNames)
+	if ~isempty(viewNames{ith_view})
+		thisViewName = viewNames{ith_view}; % Get the current view name
+
+		% Load image
+		imgThisView = imread(subImagePathStrings{ith_view});   % load image into workspace
+		[m,n,~] = size(imgThisView);
+
+		thisDirections = viewDimensionDirections(ith_view,:);
+					
+
+		% Desired data ranges for the image in non-trivial axes
+		xMin = -2; xMax = 3;              % image maps to these X coordinates
+		zMin = -1; zMax = 4;              % image maps to these Z coordinates
+		y0 = 0;                           % place image in plane y = y0
+
+		% Create mesh for surface vertices (note meshgrid order: columns->X, rows->Z)
+		x = linspace(xMin, xMax, n);      % one value per image column
+		z = linspace(zMin, zMax, m);      % one value per image row
+		[Xg, Zg] = meshgrid(x, z);
+		Yg = y0 * ones(size(Xg));
+
+		% Create textured surface with image as texture
+		figure;
+		ax = axes;
+		hImSurf = surface(ax, Xg, Yg, Zg, ...    % geometry
+			'CData', flipud(imgThisView), ...             % CData: color image (flip if needed)
+			'FaceColor', 'texturemap', ...
+			'EdgeColor', 'none', 'FaceAlpha',0.5);
+
+		hold(ax, 'on');
+
+
+		% figure(figAllViews);
+		% subplot(3,3,ith_view);
+		% imshow(temp, 'XData',[1 size(temp,2)], 'YData',[1 size(temp,1)]);
+		% title(sprintf('%s',viewNames{ith_view}));
+	end
+end
+
+% % Have all the images been pushed into subplots of one figure?
+% if ~exist(allViewsFigurePathString,'file')
+% 
+% 	% Align all the pixels
+% 	figure(figAllViews);
+% 	clf;
+% 	% grid_equal_pixel_axes(images, 3, 3)
+% 	rescalingFactor = 1.6;
+% 	minRatioDistanceperPixel = demo_tiled_equal_size(images, viewDimensionDirections, rescalingFactor, viewNames);
+% 
+% 	scaleImagesInFigure(figAllViews, []);
+% 	equalizeImagePixelScale(figAllViews, []);
+% 	savefig(figAllViews, allViewsFigurePathString);
+% end
+
+%%%% Make sure all the subplots are aligned
 
 % Align first column
 workingFig = openfig(alignedViewsFigurePathString);
@@ -165,10 +227,10 @@ savefig(workingFig, alignedViewsFigurePathString)
 %%%% 
 % Find all the zoom points
 
-axesInThisFigure = get(workingFig,'Children');
-existingTitles = cell(length(axesInThisFigure),1);
-for ith_subplot = 1:length(axesInThisFigure)
-	existingTitles{ith_subplot,1} = axesInThisFigure(ith_subplot).Title.String;
+imageFromThisFigure = get(workingFig,'Children');
+existingTitles = cell(length(imageFromThisFigure),1);
+for ith_subplot = 1:length(imageFromThisFigure)
+	existingTitles{ith_subplot,1} = imageFromThisFigure(ith_subplot).Title.String;
 end
 
 allClickedPoints = nan(9,2);
@@ -183,7 +245,7 @@ for ith_view = 1:length(viewNames)
 
 		viewToMatch = viewNames{ith_view};
 		axisIndex = find(strcmp(existingTitles,viewToMatch),1);
-		axisHandle = axesInThisFigure(axisIndex);
+		axisHandle = imageFromThisFigure(axisIndex);
 
 
 
@@ -202,8 +264,8 @@ for ith_view = 1:length(viewNames)
 end
 
 
-axesInThisFigure = get(workingFig,'Children');
-syncZoomByFigurePoints(workingFig, axesInThisFigure, figPoints, units)
+imageFromThisFigure = get(workingFig,'Children');
+syncZoomByFigurePoints(workingFig, imageFromThisFigure, figPoints, units)
 
 %%
 

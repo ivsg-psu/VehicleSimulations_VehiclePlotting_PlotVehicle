@@ -43,10 +43,7 @@ titleString = sprintf('DEMO case: basic example call');
 fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 figure(figNum); clf;
 
-vehicleNameString = '2017_Ford_Transit_ConnectXLTWagon';
-% tireCodeCharacters = '205/55R16 91V';
-
-
+% tireCodeCharacters = '215/55R16 XL 97H';
 % Wheelbase: 3.06324 meters
 % Track: 1.567 meters
 % Bumper-to-bumper length: 4.81838 meters
@@ -57,6 +54,12 @@ vehicleNameString = '2017_Ford_Transit_ConnectXLTWagon';
 % Turn radius: 6.096 meters
 % Mass: 1805 kg
 
+tempAnswerName = fullfile(pwd,'Data','answersSoFar.mat');
+if exist(tempAnswerName,'file')
+	delete(tempAnswerName);
+end
+
+vehicleNameString = '2017_Ford_Transit_ConnectXLTWagon';
 
 % Call the function
 vehicleParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameString, (figNum));
@@ -89,6 +92,7 @@ assert(size(vehicleParameters,2)==1);
 
 % Make sure plot opened up
 assert(isequal(get(gcf,'Number'),figNum));
+
 
 
 %% Test cases start here. These are very simple, usually trivial

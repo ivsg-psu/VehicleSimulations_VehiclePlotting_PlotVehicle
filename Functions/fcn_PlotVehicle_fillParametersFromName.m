@@ -1,4 +1,4 @@
-function vehicleParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameString, varargin)
+function initialParameters = fcn_PlotVehicle_fillParametersFromName(vehicleNameString, varargin)
 %fcn_PlotVehicle_fillParametersFromName - Parses tire sidewall characters into
 %dimensions (SI)
 %
@@ -164,27 +164,35 @@ charactersAsCharType = char(vehicleNameString);
 charactersAsCharType = regexprep(charactersAsCharType,'\s+',' ');
 
 % Save result
-vehicleParameters.vehicleNameString = charactersAsCharType;
+initialParameters.vehicleNameString  = charactersAsCharType;
+initialParameters.tireCodeCharacters = NaN;
 
 % Initialize outputs
-vehicleParameters.wheelbase_m = NaN;
-vehicleParameters.track_m = NaN;
-vehicleParameters.frontBumperXoffset_m = NaN;
-vehicleParameters.rearBumperXoffset_m = NaN;
-vehicleParameters.frontSteeringRoadwheelAngleLimit_rad = NaN;
-vehicleParameters.width = NaN;
-vehicleParameters.length = NaN;
-vehicleParameters.turnRadius_m = NaN;
-vehicleParameters.mass_kg = NaN;
-vehicleParameters.Iz_kgm_per_s2 = NaN;
-vehicleParameters.Caf_N_per_rad = NaN;
-vehicleParameters.Car_N_per_rad = NaN;
+initialParameters.wheelbase_m = NaN;
+initialParameters.track_m = NaN;
+initialParameters.frontBumperXoffset_m = NaN;
+initialParameters.rearBumperXoffset_m = NaN;
+initialParameters.frontSteeringRoadwheelAngleLimit_rad = NaN;
+initialParameters.width = NaN;
+initialParameters.length = NaN;
+initialParameters.turnRadius_m = NaN;
+initialParameters.mass_kg = NaN;
+initialParameters.Iz_kgm_per_s2 = NaN;
+initialParameters.Caf_N_per_rad = NaN;
+initialParameters.Car_N_per_rad = NaN;
 
 
 % Check that a file exists?
 fileName = fullfile(pwd,'Data',cat(2,'vehicleParameters_',charactersAsCharType,'.mat'));
 if exist(fileName,'file')
 	load(fileName,'vehicleParameters');
+
+	cellArrayOfFieldNames = fieldnames(vehicleParameters);
+	for kth_field = 1:numel(cellArrayOfFieldNames)
+		initialParameters.(cellArrayOfFieldNames{kth_field}) = vehicleParameters.(cellArrayOfFieldNames{kth_field});
+	end
+
+
 else
 	fprintf(1,'Previous file not found for vehicle: %s\n',charactersAsCharType);
 	if ~askYes('Do you wish to enter parameters manually?')
@@ -193,7 +201,7 @@ else
 	end
 end
 
-vehicleParameters = fcn_INTERNAL_fill_parameters(vehicleParameters);
+vehicleParameters = fcn_INTERNAL_fill_parameters(initialParameters);
 save(fileName,'vehicleParameters');
 
 
@@ -286,7 +294,7 @@ for ith_field = 1:length(fieldsToFill)
 		end
 	end
 
-	if ith_field==1
+	if ith_field==1 || ith_field==2
 		numQuestions = numQuestions+1;
 		selections(numQuestions).MenuChar = sprintf('%.0f',ith_field);
 		selections(numQuestions).Name = fieldName;
@@ -324,7 +332,7 @@ end
 numQuestions = numQuestions+1;
 selections(numQuestions).MenuChar = 's';
 selections(numQuestions).Name = 'Submit';
-selections(numQuestions).Text = '(S)ubmit this assignment.';
+selections(numQuestions).Text = '(S)ave this result.';
 selections(numQuestions).AnswerDefault = '-unsubmitted-';
 selections(numQuestions).AnswerType = '1column_of_integers';
 selections(numQuestions).AnswerConversionFunction = 'str2double';
