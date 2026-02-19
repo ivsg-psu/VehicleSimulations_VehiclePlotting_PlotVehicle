@@ -42,19 +42,19 @@ figure(figNum); clf;
 
 figAllViews = 9999;
 
-vehicleImageFilePathString = fullfile(pwd,'Data','2017_Ford_Transit_ConnectXLTWagon.png');
+vehicleImageFilePathString = fullfile(pwd,'Data','2017_Ford_Transit_ConnectXLTWagon');
 allViewsFigurePathString = fullfile(pwd,'Data','vehicleViews.fig');
 alignedViewsFigurePathString = fullfile(pwd,'Data','vehicleViewsAligned.fig');
 
 viewNames = {
-	'Top View',...
+	'TopView',...
 	'',...
 	'',...	
-	'Passenger Side View',...
-	'Front View', ...
-	'Drivers Side View',...
+	'PassengerSideView',...
+	'FrontView', ...
+	'DriversSideView',...
 	'',...
-	'Rear View',...
+	'RearView',...
 	''};
 
 viewDimensionDirections = [
@@ -68,9 +68,25 @@ viewDimensionDirections = [
 	0 -1 1;% subplot(3,3,8) - (-Y)Z
 	0 0 0];% subplot(3,3,9) - empty
 
+% Have all the views been saved/grabbed?
+Nviews = 9;
+subImagePathStrings = cell(Nviews,1);
+flagAllExist = 1;
+for ith_view = 1:length(viewNames)
+	if ~isempty(viewNames{ith_view})
+		thisViewName = viewNames{ith_view}; % Get the current view name
+		subImageFilePathString = cat(2,vehicleImageFilePathString,'_',thisViewName,'.png');
+		subImagePathStrings{ith_view} = subImageFilePathString; % Store the path for the current view	
+		if ~exist(subImageFilePathString,'file')
+			flagAllExist = 0;
+		end
+	end
+end
+
+URHERE
 if 1==1
 % if ~exist(allViewsFigurePathString,'file')
-	imgAllViews = imread(vehicleImageFilePathString);   % load image into workspace
+	imgAllViews = imread(cat(2,vehicleImageFilePathString,'.png'));   % load image into workspace
 	figure(figNum);                      % open new figure
 	imshow(imgAllViews);                   % display image
 	axis image off;              % keep aspect ratio, hide axes if desired
@@ -78,10 +94,19 @@ if 1==1
 
 	for ith_view = 1:length(viewNames)
 		if ~isempty(viewNames{ith_view})
+			thisViewName = viewNames{ith_view}; % Get the current view name
+
 			figure(figNum);
-			fprintf(1,'Select the %s\n', viewNames{ith_view});
+			fprintf(1,'Select the %s\n', thisViewName);
 			axesInThisFigure = fcn_INTERNAL_selectImageRegion(imgAllViews);
 			images{ith_view} = axesInThisFigure;
+
+			% Save views so these can be pulled later, if needed
+			subImageFilePathString = cat(2,vehicleImageFilePathString,'_',thisViewName,'.png');
+			
+			URHERE
+			imwrite(images{ith_view}, subImageFilePathString); % Save the extracted view image
+
 
 			% figure(figAllViews);
 			% subplot(3,3,ith_view);
