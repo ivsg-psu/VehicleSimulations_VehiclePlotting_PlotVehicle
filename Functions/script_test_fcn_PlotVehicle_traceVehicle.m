@@ -71,16 +71,6 @@ viewDimensionDirections = [
 	0 -1 1;% subplot(3,3,8) - (-Y)Z
 	0 0 0];% subplot(3,3,9) - empty
 
-imageMinsMaxs = [
-	1 1 0; % subplot(3,3,1) - XY
-	0 0 0; % subplot(3,3,2) - empty
-	0 0 0; % subplot(3,3,3) - empty
-	1 0 1; % subplot(3,3,4) - XZ
-	0 1 1; % subplot(3,3,5) - YZ 
-	-1 0 1;% subplot(3,3,6) - (-X)Z
-	0 0 0; % subplot(3,3,7) - empty
-	0 -1 1;% subplot(3,3,8) - (-Y)Z
-	0 0 0];% subplot(3,3,9) - empty
 
 % Have all the views been saved/grabbed?
 Nviews = 9;
@@ -131,10 +121,49 @@ figure(figNum);
 clf;
 imgThisView = imread(subImagePathStrings{4});
 imshow(imgThisView);
+title('Click on the center of the rear tire, and then center of the front. Then hit enter.');
+[xImage,y,~] = impixel;
+points = [xImage y];
+pixelDiff = diff(points,1,1);
+pixelDistance = sum(pixelDiff.^2,2).^0.5;
+fprintf(1,'Pixel distance was: %.3f',pixelDistance);
+pixelsPerMeter = pixelDistance/vehicleParameters.wheelbase_m;
+fprintf(1,'PixelsPerMeter was: %.3f',pixelsPerMeter);
+% 157.026
+
+%%
+imgThisView = imread(subImagePathStrings{6});
+imshow(imgThisView);
+title('Click on the center of the rear tire, and then center of the front. Then hit enter.');
+[xImage,y,~] = impixel;
+points = [xImage y];
+pixelDiff = diff(points,1,1);
+pixelDistance = sum(pixelDiff.^2,2).^0.5;
+fprintf(1,'Pixel distance was: %.3f',pixelDistance);
+pixelsPerMeter = pixelDistance/vehicleParameters.wheelbase_m;
+fprintf(1,'PixelsPerMeter was: %.3f',pixelsPerMeter);
+% 157.352
+
+%%
+
+imageMinsMaxs = [
+	-1.140 -1.180    1.5; % subplot(3,3,1) - XY (good)
+	     0      0      0; % subplot(3,3,2) - empty
+	     0      0      0; % subplot(3,3,3) - empty
+	-1.105  -0.75 -0.520; % subplot(3,3,4) - XZ (good)
+	   2.5 -1.128 -0.374; % subplot(3,3,5) - YZ 
+	-0.927   0.75 -0.740; % subplot(3,3,6) - (-X)Z
+	     0      0      0; % subplot(3,3,7) - empty
+	  -0.5 -1.096 -0.380; % subplot(3,3,8) - (-Y)Z
+	     0      0      0];% subplot(3,3,9) - empty
+
+% startingXY = [];
+% pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
 
 
 %% Create one figure (XYZ) that has all images inside it
 figure(figNum);
+clf;
 for ith_view = 1:length(viewNames)
 	if ~isempty(viewNames{ith_view})
 		thisViewName = viewNames{ith_view}; % Get the current view name
@@ -144,29 +173,51 @@ for ith_view = 1:length(viewNames)
 		[m,n,~] = size(imgThisView);
 
 		thisDirections = viewDimensionDirections(ith_view,:);
-					
+		dimensionsSpanned = find(thisDirections);
+		pixelSizes = zeros(1,3);
+		pixelSizes(dimensionsSpanned(1)) = n;
+		pixelSizes(dimensionsSpanned(2)) = m;
+
+		dimensionOrtho = find(thisDirections==0);
 
 		% Desired data ranges for the image in non-trivial axes
-		xMin = -2; xMax = 3;              % image maps to these X coordinates
-		zMin = -1; zMax = 4;              % image maps to these Z coordinates
-		y0 = 0;                           % place image in plane y = y0
+		XYZmin = imageMinsMaxs(ith_view,:); 
+		XYZmax = XYZmin + pixelSizes/pixelsPerMeter;
 
-		% Create mesh for surface vertices (note meshgrid order: columns->X, rows->Z)
-		x = linspace(xMin, xMax, n);      % one value per image column
-		z = linspace(zMin, zMax, m);      % one value per image row
-		[Xg, Zg] = meshgrid(x, z);
-		Yg = y0 * ones(size(Xg));
+		% Create mesh for surface vertices (note meshgrid order: columns->X, rows->Y)
+		xImage = linspace(XYZmin(dimensionsSpanned(1)), XYZmax(dimensionsSpanned(1)), n);      % one value per image column
+		yImage = linspace(XYZmin(dimensionsSpanned(2)), XYZmax(dimensionsSpanned(2)), m);      % one value per image row		
+		
+		% Create and save grids
+		[XimageGrid, YimageGrid] = meshgrid(xImage, yImage);
+		OrthoGrid = XYZmin(dimensionOrtho) * ones(size(XimageGrid));
+		imageGrids{1} = XimageGrid;
+		imageGrids{2} = YimageGrid;
+		imageGrids{3} = OrthoGrid;
+		
+		% Find mapping from realToImage
+		mappingRealToImage = 3*ones(1,3);
+		mappingRealToImage(dimensionsSpanned) = [1 2];
+
+		Xg = imageGrids{mappingRealToImage(1)};
+		Yg = imageGrids{mappingRealToImage(2)};
+		Zg = imageGrids{mappingRealToImage(3)};
 
 		% Create textured surface with image as texture
-		figure;
-		ax = axes;
-		hImSurf = surface(ax, Xg, Yg, Zg, ...    % geometry
-			'CData', flipud(imgThisView), ...             % CData: color image (flip if needed)
+		if any(thisDirections<0)
+			imageToPaste = rot90(imgThisView,2);
+		else
+			imageToPaste = flipud(imgThisView);
+		end
+		hImSurf = surface(gca, Xg, Yg, Zg, ...    % geometry
+			'CData', imageToPaste, ...             % CData: color image (flip if needed)
 			'FaceColor', 'texturemap', ...
 			'EdgeColor', 'none', 'FaceAlpha',0.5);
+		grid on;
+		axis equal;
+		hold(gca, 'on');
 
-		hold(ax, 'on');
-
+		% view([0 1 0])
 
 		% figure(figAllViews);
 		% subplot(3,3,ith_view);
@@ -174,6 +225,53 @@ for ith_view = 1:length(viewNames)
 		% title(sprintf('%s',viewNames{ith_view}));
 	end
 end
+view(3)
+
+%% Plot the tires
+
+% Fill parameters
+tireCodeCharacters = '215/55R16 XL 97H';
+tireParameters = fcn_PlotTire_parseTireSidewallCode(tireCodeCharacters, (-1));
+cellArrayOfPoints = fcn_PlotTire_fillTireLocalXYZ(tireParameters, (3), (-1));
+
+% Call the plot function
+vehicleNameString = [];
+
+
+tireNameString = 'FrontRight';
+tirePosition.position_x = vehicleParameters.wheelbase_m;
+tirePosition.position_y = -vehicleParameters.track_m/2;
+tirePosition.position_z = 0;
+tirePosition.orientation_angle = pi/2;
+tirePosition.rolling_angle = 0;
+fcn_PlotTire_plotTireXYZ(tempCellArray, (tirePosition), (tireNameString), (vehicleNameString), (figNum));
+
+tireNameString = 'FrontLeft';
+tirePosition.position_x = vehicleParameters.wheelbase_m;
+tirePosition.position_y = vehicleParameters.track_m/2;
+tirePosition.position_z = 0;
+tirePosition.orientation_angle = pi/2;
+tirePosition.rolling_angle = 0;
+fcn_PlotTire_plotTireXYZ(tempCellArray, (tirePosition), (tireNameString), (vehicleNameString), (figNum));
+
+
+tireNameString = 'RearRight';
+tirePosition.position_x = 0;
+tirePosition.position_y = -vehicleParameters.track_m/2;
+tirePosition.position_z = 0;
+tirePosition.orientation_angle = pi/2;
+tirePosition.rolling_angle = 0;
+fcn_PlotTire_plotTireXYZ(tempCellArray, (tirePosition), (tireNameString), (vehicleNameString), (figNum));
+
+tireNameString = 'RearLeft';
+tirePosition.position_x = 0;
+tirePosition.position_y = vehicleParameters.track_m/2;
+tirePosition.position_z = 0;
+tirePosition.orientation_angle = pi/2;
+tirePosition.rolling_angle = 0;
+fcn_PlotTire_plotTireXYZ(tempCellArray, (tirePosition), (tireNameString), (vehicleNameString), (figNum));
+
+%%
 
 % % Have all the images been pushed into subplots of one figure?
 % if ~exist(allViewsFigurePathString,'file')

@@ -25,6 +25,9 @@
 % 
 % 2026_02_12 by Sean Brennan, sbrennan@psu.edu
 % - First creation of the repo
+% 
+% 2026_02_12 by Sean Brennan, sbrennan@psu.edu
+% - Added PlotTire repo
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
@@ -67,8 +70,8 @@ dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_G
 dependencySubfolders{ith_repo} = {''};
 
 ith_repo = ith_repo+1;
-dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_GetUserInputPath';
-dependencySubfolders{ith_repo} = {''};
+dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/VehicleSimulations_VehiclePlotting_PlotTire';
+dependencySubfolders{ith_repo} = {'Functions','Data'};
 
 % ith_repo = ith_repo+1;
 % dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/FieldDataCollection_VisualizingFieldData_PlotRoad';

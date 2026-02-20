@@ -37,3 +37,6 @@ xlabel('X'); ylabel('Y'); zlabel('Z');
 view(3);
 grid on;
 uistack(hImSurf, 'bottom');               % ensure image is underneath
+
+startingXY = [];
+pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(gcf));
